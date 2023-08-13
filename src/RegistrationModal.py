@@ -4,7 +4,7 @@ import constants
 
 class RegistrationModal(discord.ui.Modal):
 
-    async def save_registration_data(user_id, real_name: str, profile_link: str, playing: str, online: str) -> bool:
+    async def save_registration_data(self, user_id, real_name: str, profile_link: str, playing: str, online: str) -> bool:
         new_record = {
             'user': user_id,
             'real_name': real_name,
@@ -16,10 +16,10 @@ class RegistrationModal(discord.ui.Modal):
         with open('registration_data.json', 'a') as file:
             json.dump(new_record, file)
 
-    def get_profile_link(member_name):
+    def get_profile_link(self, member_name):
         return member_name if member_name.startswith('https://') else f'https://pathofexile.com/account/view-profile/{member_name}'
 
-    def get_member_name(profile_link):
+    def get_member_name(self, profile_link):
         return profile_link.split('/')[-1] if profile_link.startswith('https://') else profile_link
     
     def __init__(self, message: discord.Message) -> None:
