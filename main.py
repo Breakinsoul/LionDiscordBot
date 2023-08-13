@@ -1,30 +1,24 @@
-from typing import Optional
+
 import discord
 import re
 import asyncio
-from discord.interactions import Interaction
+import json
 
-from discord.utils import MISSING
-
-from src.CheckProfile import check_profile
-from src.CheckRSS import check_new_entries
-from main_conf import DISCORD_TOKEN
 from discord import app_commands
 from discord.ext import commands
-from discord.ext.commands import check
 from discord.ext import tasks
+from datetime import datetime
+
+import constants
+from src.CheckProfile import check_profile
+from src.CheckRSS import check_new_entries
 from src.pob import pob_command
 from src.get_lvled import AsyncSetRoles
 from src.usersplit import username_splitter
-from datetime import datetime
-import json
+from src.RegistrationModal import RegistrationModal
+from main_conf import DISCORD_TOKEN
 
-CHECK_INTERVAL = 10
-GUILD_ID = 188669988012294144
-MAIN_CHANNEL = 188669988012294144
-RU_NEWS_CHANNEL = 1129727780528078918
-OF_ROLE_ID = 197084204297617408
-CANDIDATE_ROLE_ID = 1139581517299990658
+
 
 class LionDiscordBot(discord.Client):
     def __init__(self, *, intents: discord.Intents):
@@ -39,20 +33,19 @@ class LionDiscordBot(discord.Client):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         await self.change_presence(status=discord.Status.online, activity=discord.Game(name="Path of Exile"))
 
-    @tasks.loop(seconds=CHECK_INTERVAL)  # task runs every 60 seconds
+    @tasks.loop(seconds=600) 
     async def check_new_entries_task(self):
-        channel = self.get_channel(RU_NEWS_CHANNEL)
+        channel = self.get_channel(constants.RU_NEWS_CHANNEL_ID)
         await check_new_entries(channel)
     @check_new_entries_task.before_loop
     async def before_my_task(self):
-        await self.wait_until_ready()  # wait until the bot logs in
-
+        await self.wait_until_ready() 
     @tasks.loop()
     async def set_level_roles_to_members(self):
         time = datetime.now().strftime('%H:%M:%S')
         print ('-------')
         print(f'[{time}] Started set level roles to members...')
-        await asyncio.create_task(AsyncSetRoles(self.get_guild(GUILD_ID), 463128518562152461, self.get_channel(MAIN_CHANNEL)))
+        await asyncio.create_task(AsyncSetRoles(self.get_guild(constants.GUILD_ID), constants.USER_ROLE_ID, self.get_channel(constants.MAIN_CHANNEL_ID)))
         time = datetime.now().strftime('%H:%M:%S')
         print(f'[{time}] Finished set level roles to members...')
     @set_level_roles_to_members.before_loop
@@ -72,9 +65,9 @@ class LionDiscordBot(discord.Client):
 
     async def on_member_join(self, member: discord.Member):
         guild = member.guild
-        channel = guild.get_channel(945664078305693736)
+        channel = guild.get_channel(constants.MEMBERSHIP_REQ_CHANNEL_ID)
         await guild.system_channel.send(f'Пользователь {member.mention} зашел на сервер')
-        await channel.send(f'Привет,{member.mention}, прочитай правила на канале {member.guild.get_channel(945713995606814801).mention}, оставь заявку в гильдию через команду /reg', delete_after = 600)
+        await channel.send(f'Привет,{member.mention}, прочитай правила на канале {member.guild.get_channel(constants.RULES_CNANNEL_ID).mention}, оставь заявку в гильдию через команду /reg', delete_after = 600)
     async def on_member_remove(self, member: discord.Member):
         if member.guild.fetch_ban(member.id) is None:
             return
@@ -87,72 +80,20 @@ class LionDiscordBot(discord.Client):
 
 LionDiscordBot = LionDiscordBot(intents=discord.Intents.all())
 
-async def find_member(user, json_data) -> bool:
-    for record in json_data:
-        if record['user'] == user:
-            return True
-    return False
-async def save_registration_data(interaction: discord.Interaction,real_name: str, profile_link: str, playing: str, online: str, json_data) -> bool:
-    new_record = {'user': interaction.user.id,'real_name': real_name,'profile_link': profile_link,'playing': playing,'online': online}
-    json_data.append(new_record)
-def get_profile_link(member_name):
-    if member_name.startswith('https://'):
-        return member_name
-    else:
-        return f'https://pathofexile.com/account/view-profile/{member_name}'
-def get_member_name(profile_link):
-    if profile_link.startswith('https://'):
-        return profile_link.split('/')[-1]
-    else:
-        return profile_link
-
 @LionDiscordBot.tree.command(name='reg', description='Регистрация')
 @app_commands.guild_only()
 async def reg(interaction: discord.Interaction):
-    file_name = 'registration_data.json'
-    try:
-        with open(file_name, 'r') as file:
+    async def user_is_registered(user) -> bool:
+        with open('registration_data.json', 'r') as file:
             json_data = json.load(file)
-    except FileNotFoundError:
-        json_data = []
-    is_member_registerd = await find_member(interaction.user.id, json_data)
-    if is_member_registerd:
+            return any(record['user'] == user for record in json_data)
+        
+    user_id = interaction.user.id
+    if user_is_registered(user_id):
         await interaction.response.send_message('Пользователь уже зарегистрирован', ephemeral=True, delete_after=5)
         return
-    class reg_modal(discord.ui.Modal):
-        def __init__(self, message: discord.Message) -> None:
-            super().__init__(title='Форма регистрации', timeout=1000, custom_id='reg_modal') 
-            
-        real_name = discord.ui.TextInput(label='Ваше реальное имя', placeholder='Ваше имя', style=discord.TextStyle.short, required=True)
-        profile = discord.ui.TextInput(label='Профиль PoE(сам аккаунт или ссылка)', placeholder='Профиль PoE', style=discord.TextStyle.short, required=True)
-        playing = discord.ui.TextInput(label='Сколько вы уже играете в PoE?', placeholder='Сколько вы уже играете в PoE?', style=discord.TextStyle.short, required=True)
-        online = discord.ui.TextInput(label='Средний онлайн в неделю?', placeholder='Средний онлайн в неделю?', style=discord.TextStyle.short, required=True)
-        async def on_submit(self, interaction: discord.Interaction) -> None:
-            real_name = self.real_name.value
-            profile_link = get_profile_link(self.profile.value)
-            profile_name = f'{get_member_name(profile_link)}_{real_name}'
-            playing = self.playing.value
-            online = self.online.value
-            user = interaction.user.mention
-            officer_role = interaction.guild.get_role(OF_ROLE_ID)
-            
-            await save_registration_data(interaction, real_name, profile_link, playing, online, json_data)
-            with open(file_name, 'w') as file:
-                    json.dump(json_data, file, indent=4)
-            await interaction.response.send_message('Регистрация прошла успешно', ephemeral=True, delete_after=5)
-            reg_embed = discord.Embed(title=f'Заявка на регистрацию', description='', color=discord.Color.green())
-            reg_embed .add_field(name='Пользователь', value=user, inline=False)
-            reg_embed.add_field(name='Реальное имя', value=real_name, inline=False)
-            reg_embed.add_field(name='Профиль PoE', value=profile_link, inline=False)
-            reg_embed.add_field(name='Сколько вы уже играете в PoE?', value=playing, inline=False)
-            reg_embed.add_field(name='Средний онлайн в неделю?', value=online, inline=False)
-            reg_embed.add_field(name='', value=f'Дождись ответа от {officer_role.mention} либо зайди в голосовой канал', inline=False)
-            candidate_role = interaction.guild.get_role(CANDIDATE_ROLE_ID)
-            await interaction.user.edit(nick=profile_name)
-            await interaction.user.add_roles(candidate_role)
-            await interaction.guild.get_channel(945664078305693736).send(embed=reg_embed)
-        
-    modal = reg_modal(interaction)
+
+    modal = RegistrationModal(interaction)
     await interaction.response.send_modal(modal)
 
 @LionDiscordBot.tree.command(name="checkprofilepoe", description="Check Characters on Profile")
