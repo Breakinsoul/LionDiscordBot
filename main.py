@@ -3,6 +3,7 @@ import discord
 import re
 import asyncio
 import json
+import os
 
 from discord import app_commands
 from discord.ext import commands
@@ -83,13 +84,17 @@ LionDiscordBot = LionDiscordBot(intents=discord.Intents.all())
 @LionDiscordBot.tree.command(name='reg', description='Регистрация')
 @app_commands.guild_only()
 async def reg(interaction: discord.Interaction):
+
     async def user_is_registered(user) -> bool:
-        with open('registration_data.json', 'r') as file:
-            json_data = json.load(file)
-            return any(record['user'] == user for record in json_data)
+        if os.path.exists('registration_data.json'):
+            with open('registration_data.json', 'r') as file:
+                json_data = json.load(file)
+                return any(record['user'] == user for record in json_data)
+        else:
+            return False
         
     user_id = interaction.user.id
-    if user_is_registered(user_id):
+    if await user_is_registered(user_id):
         await interaction.response.send_message('Пользователь уже зарегистрирован', ephemeral=True, delete_after=5)
         return
 
