@@ -4,11 +4,13 @@ import re
 import asyncio
 import json
 import os
+import aiohttp
 
 from discord import app_commands
 from discord.ext import commands
 from discord.ext import tasks
 from datetime import datetime
+from typing import Literal, List
 
 import constants
 from src.CheckProfile import check_profile
@@ -17,9 +19,8 @@ from src.pob import pob_command
 from src.get_lvled import AsyncSetRoles
 from src.usersplit import username_splitter
 from src.RegistrationModal import RegistrationModal
+from src.wiki_search import wiki_search
 from main_conf import DISCORD_TOKEN
-
-
 
 class LionDiscordBot(discord.Client):
     def __init__(self, *, intents: discord.Intents):
@@ -84,7 +85,6 @@ LionDiscordBot = LionDiscordBot(intents=discord.Intents.all())
 @LionDiscordBot.tree.command(name='reg', description='Регистрация')
 @app_commands.guild_only()
 async def reg(interaction: discord.Interaction):
-
     async def user_is_registered(user) -> bool:
         if os.path.exists('registration_data.json'):
             with open('registration_data.json', 'r') as file:
@@ -130,5 +130,30 @@ async def sync(interaction: discord.Interaction):
         print (await LionDiscordBot.tree.fetch_commands(guild=guild))
         print(f"Synced {guild.name}:{guild.id}")
     await interaction.response.send_message("Synced", ephemeral=True)
+async def search_autocomplete(interaction : discord.Interaction,search: str) -> List [app_commands.Choice[str]]:
+    search_for = interaction.namespace.search_for
+    if search_for == 'gem':
+        api_entry = constants.gem_api_entry
+    elif search_for == 'unique':
+        api_entry = constants.uniq_api_entry
+    else:
+        api_entry = constants.any_api_entry
+    url = f'{api_entry}{search}%25%22'
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            data = await response.json()
+            items = [record['title']['name'] for record in data['cargoquery'][:25]]
+            return [
+                app_commands.Choice(name=item, value=item)
+                for item in items
+            ]
+
+@LionDiscordBot.tree.command(name="wiki", description="Поиск по wiki")
+@app_commands.guild_only()
+@app_commands.autocomplete(search=search_autocomplete)
+async def wiki(interaction: discord.Interaction, search_for: Literal['any','gem', 'unique'], search: str):
+    items = await wiki_search(search_for, search)
+    await interaction.response.send_message(content=items, delete_after=600)
 
 LionDiscordBot.run(DISCORD_TOKEN)
