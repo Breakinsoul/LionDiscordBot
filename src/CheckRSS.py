@@ -64,7 +64,7 @@ async def check_new_entries(channel):
                         new_thread, new_message  = await channel.create_thread(name=entry.title, embed=news_embed, file=file)
                         await new_thread.edit(locked = True)
                     else:
-                        new_thread, new_message = await channel. channel.create_thread(name=entry.title, embed=news_embed)
+                        new_thread, new_message = await channel.create_thread(name=entry.title, embed=news_embed)
                         await new_thread.edit(locked = True)
 
                     
