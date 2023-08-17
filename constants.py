@@ -9,4 +9,7 @@ CANDIDATE_ROLE_ID = 1139581517299990658
 
 any_api_entry = 'https://www.poewiki.net/api.php?action=cargoquery&tables=items&fields=name,class,drop_areas_html,rarity,tags&group_by=name&format=json&where=NOT%20class%3D%22Quest%20Item%22%20AND%20NOT%20class%3D%22Cosmetic%20Item%22%20AND%20NOT%20class%3D%22Hideout%20Decoration%22%20AND%20name%20LIKE%20%22%25'
 uniq_api_entry ='https://www.poewiki.net/api.php?action=cargoquery&tables=items&fields=name,class,drop_areas_html,rarity,tags&group_by=name&format=json&where=rarity=%22Unique%22%20AND%20NOT%20class%3D%22Quest%20Item%22%20AND%20NOT%20class%3D%22Cosmetic%20Item%22%20AND%20NOT%20class%3D%22Hideout%20Decoration%22%20AND%20name%20LIKE%20%22%25'
-gem_api_entry = 'https://www.poewiki.net/api.php?action=cargoquery&tables=items&fields=name,class&group_by=name&format=json&where=(class="Skill Gem" OR class="Support Gem") AND name LIKE '
+
+json_reg_file = 'registration_data.json'
+default_league = 'Standard'
+default_visibility = 'Public'

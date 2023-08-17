@@ -20,6 +20,7 @@ from src.get_lvled import AsyncSetRoles
 from src.usersplit import username_splitter
 from src.RegistrationModal import RegistrationModal
 from src.wiki_search import wiki_search
+from src.ninja_prices import download_ninja_prices
 from main_conf import DISCORD_TOKEN
 
 class LionDiscordBot(discord.Client):
@@ -30,17 +31,28 @@ class LionDiscordBot(discord.Client):
     async def setup_hook(self) -> None:
         self.check_new_entries_task.start()
         self.set_level_roles_to_members.start()
+        self.grab_ninja_jsons.start()
 
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         await self.change_presence(status=discord.Status.online, activity=discord.Game(name="Path of Exile"))
+
+    @tasks.loop(hours=1)
+    async def grab_ninja_jsons(self):
+        leagues = ['Standard', 'Crucible', 'Hardcore', 'CrucibleHC']
+        currencyoverviews = ['Currency', 'Fragment']
+        itemoverviews = ['DivinationCard', 'DeliriumOrb', 'Artifact', 'Oil', 'UniqueWeapon', 'UniqueArmour', 'UniqueAccessory', 'UniqueFlask', 'UniqueJewel', 'SkillGem', 'Map', 'UniqueMap', 'Invitation', 'Scarab', 'Fossil', 'Resonator', 'Essence', 'Vial']
+        await download_ninja_prices(leagues, currencyoverviews, itemoverviews)
+    @grab_ninja_jsons.before_loop
+    async def before_grab_ninja_jsons(self):
+        await self.wait_until_ready()
 
     @tasks.loop(seconds=600) 
     async def check_new_entries_task(self):
         channel = self.get_channel(constants.RU_NEWS_CHANNEL_ID)
         await check_new_entries(channel)
     @check_new_entries_task.before_loop
-    async def before_my_task(self):
+    async def before_check_new_entries(self):
         await self.wait_until_ready() 
     @tasks.loop()
     async def set_level_roles_to_members(self):
@@ -85,11 +97,14 @@ LionDiscordBot = LionDiscordBot(intents=discord.Intents.all())
 @LionDiscordBot.tree.command(name='reg', description='Регистрация')
 @app_commands.guild_only()
 async def reg(interaction: discord.Interaction):
-    async def user_is_registered(user) -> bool:
-        if os.path.exists('registration_data.json'):
+    async def user_is_registered(user_id) -> bool:
+        if os.path.exists(constants.json_reg_file):
+            
             with open('registration_data.json', 'r') as file:
                 json_data = json.load(file)
-                return any(record['user'] == user for record in json_data)
+                for record in json_data:
+                    if record['user'] == user_id:
+                        return True
         else:
             return False
         
@@ -132,28 +147,101 @@ async def sync(interaction: discord.Interaction):
     await interaction.response.send_message("Synced", ephemeral=True)
 async def search_autocomplete(interaction : discord.Interaction,search: str) -> List [app_commands.Choice[str]]:
     search_for = interaction.namespace.search_for
-    if search_for == 'gem':
-        api_entry = constants.gem_api_entry
-    elif search_for == 'unique':
+    if search_for == 'OnlyUniques':
         api_entry = constants.uniq_api_entry
-    else:
-        api_entry = constants.any_api_entry
-    url = f'{api_entry}{search}%25%22'
+        url = f'{api_entry}{search}%25%22'
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            data = await response.json()
-            items = [record['title']['name'] for record in data['cargoquery'][:25]]
-            return [
-                app_commands.Choice(name=item, value=item)
-                for item in items
-            ]
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                data = await response.json()
+                items = [record['title']['name'] for record in data['cargoquery'][:25]]
+                return [
+                    app_commands.Choice(name=item, value=item)
+                    for item in items
+                ]
+    elif search_for == 'Search':
+        api_entry = constants.any_api_entry
+        url = f'{api_entry}{search}%25%22'
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                data = await response.json()
+                items = [record['title']['name'] for record in data['cargoquery'][:25]]
+                return [
+                    app_commands.Choice(name=item, value=item)
+                    for item in items
+                ]
+    elif search_for == 'Setting League':
+        leagues = ['Standard', 'Crucible', 'Hardcore', 'CrucibleHC']
+        return [
+            app_commands.Choice(name=league, value=league)
+            for league in leagues
+        ]
+    elif search_for == 'Setting Visibility':
+        return [
+            app_commands.Choice(name=visibility, value=visibility)
+            for visibility in ['Public', 'Private']
+        ]
 
 @LionDiscordBot.tree.command(name="wiki", description="Поиск по wiki")
 @app_commands.guild_only()
 @app_commands.autocomplete(search=search_autocomplete)
-async def wiki(interaction: discord.Interaction, search_for: Literal['any','gem', 'unique'], search: str):
-    items = await wiki_search(search_for, search)
-    await interaction.response.send_message(content=items, delete_after=600)
-
+async def wiki(interaction: discord.Interaction, search_for: Literal['Search','OnlyUniques', 'Setting League', "Setting Visibility"], search: str):
+    if search_for == 'Search' or search_for == 'OnlyUniques':
+        league = constants.default_league
+        visibility = constants.default_visibility
+        with open(constants.json_reg_file, 'r') as file:
+            data = json.load(file)
+            for user in data:
+                if user['user'] == interaction.user.id:
+                    if user['conf']:
+                        league = user['conf'].get('league', constants.default_league)
+                        visibility = user['conf'].get('visibility', constants.default_visibility)
+        items = await wiki_search(search_for, search, league)
+        if visibility == 'Private':
+            await interaction.response.send_message(content=items, delete_after=600, ephemeral=True)
+        else:
+            await interaction.response.send_message(content=items, ephemeral=False)
+    if search_for == 'Setting League':
+        await interaction.response.send_message(f'Settings: League changed to {search}', ephemeral=True)
+        user_id = interaction.user.id
+        with open(constants.json_reg_file, 'r+') as file:
+            data = json.load(file)
+            user_exist = False
+            for user in data:
+                if user['user'] == user_id:
+                    user['conf']['league'] = search
+                    user_exist = True
+                    break
+            if not user_exist:
+                new_record = {
+                    'user': user_id,
+                    'conf': {
+                        'league': search
+                    }
+                }
+                data.append(new_record)
+            file.seek(0)
+            json.dump(data, file, indent=4)
+    if search_for == "Setting Visibility":
+        await interaction.response.send_message(f'Settings: Visibility changed to {search}', ephemeral=True)
+        user_id = interaction.user.id
+        with open(constants.json_reg_file, 'r+') as file:
+            data = json.load(file)
+            user_exist = False
+            for user in data:
+                if user['user'] == user_id:
+                    user['conf']['visibility'] = search
+                    user_exist = True
+                    break
+            if not user_exist:
+                new_record = {
+                    'user': user_id,
+                    'conf': {
+                        'visibility': search
+                    }
+                }
+                data.append(new_record)
+            file.seek(0)
+            json.dump(data, file, indent=4)    
 LionDiscordBot.run(DISCORD_TOKEN)

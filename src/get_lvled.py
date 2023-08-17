@@ -38,7 +38,7 @@ async def AsyncSetRoles(guild: discord.guild, role_id: int, channel: discord.cha
     async with aiohttp.ClientSession() as session:
         for member in guild.members:
             for role in member.roles:
-                if role_id == role.id:
+                if role_id == role.id and member.status != discord.Status.offline:
                     lvl100leagues = await get_lvled_in_leagues(member=member, session=session, sleep_time=40)
                     if lvl100leagues:
                         for league in lvl100leagues:
@@ -54,6 +54,5 @@ async def AsyncSetRoles(guild: discord.guild, role_id: int, channel: discord.cha
                                 await member.add_roles(league_role)
                                 if message_is_sended == False:
                                     message = f'Участник {member.mention} поднял уровень 100 на лиге: {league}'
-                                    #await channel.send(message)
+                                    await channel.send(message)
                                     print (message)
-    await session.close()

@@ -4,3 +4,4 @@ __pycache__/
 *$py.class
 main_conf.py
 registration_data.json
+*.json

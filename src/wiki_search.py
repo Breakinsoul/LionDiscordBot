@@ -25,14 +25,14 @@ def get_item_header(name, class_name, rarity):
 def get_drop_areas(drop_areas):
     cleaned_areas = re.findall(r'\[\[.*?\|(.*?)\]\]', drop_areas)
     return cleaned_areas
-def find_any(data_item):
+def find_item(data_item, league):
     name = data_item['title'].get('name', 'None')  
     class_name = data_item['title'].get('class', 'None')
     drop_areas = data_item['title'].get('drop areas html', 'None')
     tags = data_item['title'].get('tags', 'None')
     rarity = data_item['title'].get('rarity', 'None')
     header = get_item_header(name, class_name, rarity)
-    price = get_ninja_price(name, class_name, tags, rarity)
+    price = get_ninja_price(name, class_name, tags, rarity, league)
     components = ['']
     if drop_areas != 'None':
         areas = get_drop_areas(drop_areas)
@@ -41,26 +41,20 @@ def find_any(data_item):
         components.append(price)
     return header + ''.join(components)
 
-def get_items(data, search_for):
+def get_items(data, league):
     have_more = False
     found_items = []
     for data_item in data['cargoquery']:
-        if search_for == 'any':
-            item = find_any(data_item)
-            if len(''.join(found_items) + item) > 1900:
-                have_more = True
-                break
-        if search_for == 'unique':
-            item = find_any(data_item)
-            if len(''.join(found_items) + item) > 1900:
-                have_more = True
-                break
+        item = find_item(data_item, league)
+        if len(''.join(found_items) + item) > 1900:
+            have_more = True
+            break
         found_items.append(item)
     if len(found_items) > 0:
         if have_more:
-            items_header = f'>>> Wiki Search: Found more then {len(found_items)} items:\n'
+            items_header = f'>>> Wiki Search: Found more then {len(found_items)} items (prices for {league}):\n'
         else:
-            items_header = f'>>> Wiki Search: Found {len(found_items)} items:\n'
+            items_header = f'>>> Wiki Search: Found {len(found_items)} items (prices for {league}):\n'
     else:
         items_header = '>>> Wiki Search: No items found.'
     if found_items != []:
@@ -69,7 +63,7 @@ def get_items(data, search_for):
     else: 
         return {items_header}
 
-async def wiki_search(search_for, search):
+async def wiki_search(search_for, search, league):
     if search_for == 'gem':
         api_entry = constants.gem_api_entry
     elif search_for == 'unique':
@@ -79,6 +73,6 @@ async def wiki_search(search_for, search):
     url = f'{api_entry}{search}%25%22'
     print(url)
     data = await get_json(url)
-    items = get_items(data, search_for)
+    items = get_items(data, league)
     
     return items
