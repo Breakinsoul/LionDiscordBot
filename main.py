@@ -187,6 +187,10 @@ async def search_autocomplete(interaction : discord.Interaction,search: str) -> 
 @app_commands.guild_only()
 @app_commands.autocomplete(search=search_autocomplete)
 async def wiki(interaction: discord.Interaction, search_for: Literal['Search','OnlyUniques', 'Setting League', "Setting Visibility"], search: str):
+    json_file = constants.json_reg_file
+    if not os.path.exists(json_file):
+        with open(json_file, 'w') as file:
+            json.dump([], file, indent=4)
     if search_for == 'Search' or search_for == 'OnlyUniques':
         league = constants.default_league
         visibility = constants.default_visibility
