@@ -7,17 +7,29 @@ def get_price_from_json_file(file_path, name):
     with open(file_path) as file:
         data = json.load(file)
         items = data['lines']
-        print(name)
         for item in items:
             if item['name'] == name:
                 divine_value = round(float(item.get('divineValue', 'None')), 1)
                 formated_divine_value = "{:.1f}".format(divine_value).rstrip('0').rstrip('.')
-                chaos_value =  round(float(item.get('chaosValue', 'None')), 1)
-                formated_chaos_value = "{:.1f}".format(chaos_value).rstrip('0').rstrip('.')
-                if float(formated_divine_value) < 1:
-                    return f' - Price: [Chaos:{formated_chaos_value}]\n'
+                chaos_value =  int(item.get('chaosValue', 'None'))
+
+
+                total_change = item.get('sparkline').get('totalChange')
+                if not str(total_change).startswith('-'):
+                    formated_total_change = f'+{total_change}%'
                 else:
-                    return f' - Price: [Chaos:{formated_chaos_value}, Divine:{formated_divine_value}]\n'
+                    formated_total_change = f'{total_change}%'
+
+                if float(formated_divine_value) < 1:
+                    if total_change and total_change > 5:
+                        return f' - Price: [Chaos:{chaos_value}, Change:{formated_total_change}]\n'
+                    else:
+                        return f' - Price: [Chaos:{chaos_value}]\n'
+                else:
+                    if total_change and total_change > 5:
+                        return f' - Price: [Chaos:{chaos_value}, Divine:{formated_divine_value}, Change:{formated_total_change}]\n'
+                    else:
+                        return f' - Price: [Chaos:{chaos_value}, Divine:{formated_divine_value}]\n'
 
 def get_currency_price_from_json_file(file_path, name):
     with open(file_path) as file:
@@ -27,17 +39,36 @@ def get_currency_price_from_json_file(file_path, name):
             if item['currencyTypeName'] == name:
                 receive_data = item.get('receive')
                 pay_data = item.get('pay')
-                receive_chaos_equivalent = None
-                pay_chaos_equivalent = None
 
+                if item.get('receiveSparkLine'):
+                    receive_change = int(item['receiveSparkLine'].get('totalChange'))
+                if item.get('paySparkLine'):
+                    pay_change = int(item['paySparkLine'].get('totalChange'))
+                receive_chaos_equivalent = f'{int(receive_data.get("value"))}'
+                pay_chaos_equivalent = f'{int(1/pay_data.get("value"))}'
+                if not str(receive_change).startswith('-'):
+                    formated_receive_change = f'+{receive_change}%'
+                else: 
+                    formated_receive_change = f'{receive_change}%'
+                if not str(pay_change).startswith('-'):
+                    formated_pay_change = f'+{pay_change}%'
+                else:
+                    formated_pay_change = f'{pay_change}%'
+
+                components = []
                 if receive_data:
-                    receive_chaos_equivalent = f'{receive_data.get("value"):.2f}'
+                    if receive_change and receive_change > 5:
+                        components.append (f'[Receive: {receive_chaos_equivalent}chaos  Change: {formated_receive_change}]')
+                    else:
+                        components.append (f'[Receive: {receive_chaos_equivalent}chaos]')
 
                 if pay_data:
-                    pay_chaos_equivalent = f'{1/pay_data.get("value"):.2f}'
-
+                    if pay_change and pay_change > 5:
+                        components.append (f'[Pay: {pay_chaos_equivalent}chaos Change: {formated_pay_change}]')
+                    else:
+                        components.append (f'[Pay: {pay_chaos_equivalent}chaos]')
                 if receive_chaos_equivalent or pay_chaos_equivalent:
-                    return f' - get: {receive_chaos_equivalent}c, pay: {pay_chaos_equivalent}c\n'
+                    return f' - Price: {" ".join(components)}\n'
 def get_uniques_price_from_json_file(file_path, name, tags):
     with open(file_path) as file:
         data = json.load(file)
@@ -51,7 +82,12 @@ def get_uniques_price_from_json_file(file_path, name, tags):
                 
             divine_value = round(float(item.get('divineValue', 'None')), 1)
             formated_divine_value = "{:.1f}".format(divine_value).rstrip('0').rstrip('.')
-            
+            total_change = item.get('sparkline').get('totalChange')
+            if not str(total_change).startswith('-'):
+                formated_total_change = f'+{total_change}%'
+            else:
+                formated_total_change = f'{total_change}%'
+                
             links = item.get('links', 'None')
             item_class = str(item.get('itemClass', 'None'))
             variant = item.get('variant', 'None')
@@ -71,15 +107,17 @@ def get_uniques_price_from_json_file(file_path, name, tags):
                 components.append(f' - {variant}')
             if map_tier != 'None':
                 components.append(f' - T{map_tier}')
+            if total_change and total_change > 5:
+                components.append(f' Change: {formated_total_change}')
+
             if divine_value < 0.5:
                 uniques_records.append(f'[Chaos:{chaos_value}{"".join(components)}]')
             elif chaos_value > 1000:
                 uniques_records.append(f'[Divine:{formated_divine_value}{"".join(components)}]')
             else:
                 uniques_records.append(f'[Chaos:{chaos_value}, Divine:{formated_divine_value}{"".join(components)}]')
-        print(uniques_records)
         if len(uniques_records) > 1:
-            return ' - Prices:\n - ' + '\n - '.join(uniques_records) + '\n'
+            return '- - Prices:\n - ' + '\n - '.join(uniques_records) + '\n'
         if len(uniques_records) > 1 and len(uniques_records) < 5:
             return ' - Prices:' + ''.join(uniques_records) + '\n'
         elif len(uniques_records) == 1:
