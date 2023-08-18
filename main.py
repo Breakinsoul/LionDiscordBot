@@ -220,7 +220,7 @@ async def gift_roll(interaction: discord.Interaction):
         registered_users = []
         json_file = constants.json_reg_file
         giveaway_id = 1
-        giveawat_league = "Standard"
+        giveaway_league = constants.giveaway_league
         if not os.path.exists(json_file):
             with open(json_file, 'w') as file:
                 json.dump([], file, indent=4)
@@ -245,14 +245,14 @@ async def gift_roll(interaction: discord.Interaction):
                 data = await request.json()
                 if request.status == 200:
                     for character in data:
-                        if character['league'] == giveawat_league and character['level'] >= 100:
+                        if giveaway_league in character['league'] and character['level'] >= 75:
                             char_name = character['name']
                             char_lvl = character['level']
                             char_league = character['league']
                             char_class = character['class']
                             char_lvled.append(f'{char_name}, уровень {char_lvl}, класс {char_class}, лига {char_league}\n')
         message += f'У пользователя есть персонаж(и):\n {"".join(char_lvled)}'         
-        await interaction.response.send_message(message, ephemeral=True)
+        await interaction.response.send_message(message)
 
 
 @LionDiscordBot.tree.command(name="wiki", description="Поиск по wiki")
