@@ -7,24 +7,33 @@ import constants
 class RegistrationModal(discord.ui.Modal):
 
     async def save_registration_data(self, user_id, real_name: str, profile_link: str, playing: str, online: str) -> bool:
-        new_record = {
-            'user': user_id,
-            'conf': {
-                'real_name': real_name,
-                'profile_link': profile_link,
-                'playing': playing,
-                'online': online
-            }   
-        }
         json_file = constants.json_reg_file
         if not os.path.exists(json_file):
             with open(json_file, 'w') as file:
                 json.dump([], file, indent=4)
-        
-        with open(json_file, 'r') as file:
+        with open(json_file, 'r+') as file:
             data = json.load(file)
-        data.append(new_record)
-        with open(json_file, 'w') as file:
+            user_present = False
+            for user in data:
+                if user['user'] == user_id:
+                    user['conf']['real_name'] = real_name
+                    user['conf']['profile_link'] = profile_link
+                    user['conf']['playing'] = playing
+                    user['conf']['online'] = online
+                    user_present = True
+                    break
+            if user_present == False:
+                new_record = {
+                    'user': user_id,
+                    'conf': {
+                        'real_name': real_name,
+                        'profile_link': profile_link,
+                        'playing': playing,
+                        'online': online
+                    }
+                }
+                data.append(new_record)
+            file.seek(0)
             json.dump(data, file, indent=4)
 
     def get_profile_link(self, member_name):

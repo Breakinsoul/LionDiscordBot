@@ -5,6 +5,7 @@ import asyncio
 import json
 import os
 import aiohttp
+import random
 
 from discord import app_commands
 from discord.ext import commands
@@ -30,7 +31,7 @@ class LionDiscordBot(discord.Client):
         
     async def setup_hook(self) -> None:
         self.check_new_entries_task.start()
-        self.set_level_roles_to_members.start()
+        #self.set_level_roles_to_members.start()
         self.grab_ninja_jsons.start()
 
     async def on_ready(self):
@@ -100,11 +101,12 @@ async def reg(interaction: discord.Interaction):
     async def user_is_registered(user_id) -> bool:
         if os.path.exists(constants.json_reg_file):
             
-            with open('registration_data.json', 'r') as file:
+            with open(constants.json_reg_file, 'r') as file:
                 json_data = json.load(file)
-                for record in json_data:
-                    if record['user'] == user_id:
-                        return True
+                for user in json_data:
+                    if user['user'] == user_id:
+                        if user['conf'].get('real_name', 'None') != 'None':
+                            return True
         else:
             return False
         
@@ -182,6 +184,76 @@ async def search_autocomplete(interaction : discord.Interaction,search: str) -> 
             app_commands.Choice(name=visibility, value=visibility)
             for visibility in ['Public', 'Private']
         ]
+@LionDiscordBot.tree.command(name='giveaway', description="Раздача")
+@app_commands.guild_only()
+async def Giveaway_reg(interaction: discord.Interaction):
+    message = ''
+    with open(constants.json_reg_file, 'r+') as file:
+        data = json.load(file)
+        user_id = interaction.user.id
+        giveaway_id = 1
+        for user in data:
+            if user['user'] == user_id:
+                giveaway = user['conf'].get(f'giveaway_{giveaway_id}')
+                if giveaway == True:
+                    message = 'Вы уже зарегистрированы'
+                else:
+                    user['conf'][f'giveaway_{giveaway_id}'] = True
+                    message = 'Вы успешно зарегистрированы'
+                break
+        else:
+            new_record = {
+                'user': user_id,
+                'conf': {
+                    f'giveaway_{giveaway_id}': True
+                }
+            }
+            data.append(new_record)
+            message = 'Вы успешно зарегистрированы'
+        file.seek(0)
+        json.dump(data, file, indent=4)
+    await interaction.response.send_message(message, ephemeral=True)
+@LionDiscordBot.tree.command(name='giveaway_roll', description='Провести Roll')
+@app_commands.guild_only()
+async def gift_roll(interaction: discord.Interaction):
+    if interaction.user.get_role(197084204297617408):
+        registered_users = []
+        json_file = constants.json_reg_file
+        giveaway_id = 1
+        giveawat_league = "Standard"
+        if not os.path.exists(json_file):
+            with open(json_file, 'w') as file:
+                json.dump([], file, indent=4)
+        with open(json_file, 'r') as file:
+            data = json.load(file)
+            for user in data:
+                if user['conf'].get(f'giveaway_{giveaway_id}') == True:
+                    registered_users.append(user['user'])
+        random_number = random.randint(1, len(registered_users))
+        random_user = interaction.guild.get_member(registered_users[random_number-1])
+        message = f'>>> Случайное число было {random_number}, пользователь ID:{random_user.id}, {random_user.mention}\n'
+        
+        nickname = random_user.display_name or random_user.name
+        username_split = username_splitter(nickname)
+        url = f'https://www.pathofexile.com/character-window/get-characters?accountName={username_split}'
+        message += f'Url: {url}\n'
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'}
+        cookies = {"POESESSID": "084e9c4d53fc0bdd91911aca5650e055"}
+        char_lvled = []
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, cookies=cookies) as request:
+                data = await request.json()
+                if request.status == 200:
+                    for character in data:
+                        if character['league'] == giveawat_league and character['level'] >= 100:
+                            char_name = character['name']
+                            char_lvl = character['level']
+                            char_league = character['league']
+                            char_class = character['class']
+                            char_lvled.append(f'{char_name}, уровень {char_lvl}, класс {char_class}, лига {char_league}\n')
+        message += f'У пользователя есть персонаж(и):\n {"".join(char_lvled)}'         
+        await interaction.response.send_message(message, ephemeral=True)
+
 
 @LionDiscordBot.tree.command(name="wiki", description="Поиск по wiki")
 @app_commands.guild_only()

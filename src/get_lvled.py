@@ -4,16 +4,6 @@ import discord
 from datetime import datetime
 import aiohttp
 import asyncio
-
-def get_online_members_count(guild, role_id):
-    members_count = 0
-    for member in guild.members:
-        if member.status != discord.Status.offline:
-            for role in member.roles:
-                if  role_id == role.id:
-                    members_count += 1
-    return members_count
-
 async def get_lvled_in_leagues(member: discord.Member, session: aiohttp.ClientSession, sleep_time: int) -> set:
     await asyncio.sleep(sleep_time)
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'}
