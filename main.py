@@ -31,7 +31,7 @@ class LionDiscordBot(discord.Client):
         
     async def setup_hook(self) -> None:
         self.check_new_entries_task.start()
-        #self.set_level_roles_to_members.start()
+        self.set_level_roles_to_members.start()
         self.grab_ninja_jsons.start()
 
     async def on_ready(self):
