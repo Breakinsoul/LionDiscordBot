@@ -7,6 +7,7 @@ MEMBERSHIP_REQ_CHANNEL_ID = 945664078305693736
 OF_ROLE_ID = 197084204297617408
 CANDIDATE_ROLE_ID = 1139581517299990658
 giveaway_league = ["Ancestor", "AncestorHardcore"]
+autocomplete_settings_league = ['Standard', 'Ancestor', 'Hardcore', 'AncestorHC']
 any_api_entry = 'https://www.poewiki.net/api.php?action=cargoquery&tables=items&fields=name,class,drop_areas_html,rarity,tags&group_by=name&format=json&where=NOT%20class%3D%22Quest%20Item%22%20AND%20NOT%20class%3D%22Cosmetic%20Item%22%20AND%20NOT%20class%3D%22Hideout%20Decoration%22%20AND%20name%20LIKE%20%22%25'
 uniq_api_entry ='https://www.poewiki.net/api.php?action=cargoquery&tables=items&fields=name,class,drop_areas_html,rarity,tags&group_by=name&format=json&where=rarity=%22Unique%22%20AND%20NOT%20class%3D%22Quest%20Item%22%20AND%20NOT%20class%3D%22Cosmetic%20Item%22%20AND%20NOT%20class%3D%22Hideout%20Decoration%22%20AND%20name%20LIKE%20%22%25'
 

@@ -174,7 +174,7 @@ async def search_autocomplete(interaction : discord.Interaction,search: str) -> 
                     for item in items
                 ]
     elif search_for == 'Setting League':
-        leagues = ['Standard', 'Crucible', 'Hardcore', 'CrucibleHC']
+        leagues = constants.autocomplete_settings_league
         return [
             app_commands.Choice(name=league, value=league)
             for league in leagues
