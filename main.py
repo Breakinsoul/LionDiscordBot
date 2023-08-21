@@ -238,10 +238,9 @@ async def gift_roll(interaction: discord.Interaction):
         url = f'https://www.pathofexile.com/character-window/get-characters?accountName={username_split}'
         message += f'Url: {url}\n'
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'}
-        cookies = {"POESESSID": "084e9c4d53fc0bdd91911aca5650e055"}
         char_lvled = []
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers, cookies=cookies) as request:
+            async with session.get(url, headers=headers) as request:
                 data = await request.json()
                 if request.status == 200:
                     for character in data:
