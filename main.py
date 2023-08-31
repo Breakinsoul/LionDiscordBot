@@ -40,7 +40,7 @@ class LionDiscordBot(discord.Client):
 
     @tasks.loop(hours=1)
     async def grab_ninja_jsons(self):
-        leagues = ['Standard', 'Crucible', 'Hardcore', 'CrucibleHC']
+        leagues = constants.autocomplete_settings_league
         currencyoverviews = ['Currency', 'Fragment']
         itemoverviews = ['DivinationCard', 'DeliriumOrb', 'Artifact', 'Oil', 'UniqueWeapon', 'UniqueArmour', 'UniqueAccessory', 'UniqueFlask', 'UniqueJewel', 'SkillGem', 'Map', 'UniqueMap', 'Invitation', 'Scarab', 'Fossil', 'Resonator', 'Essence', 'Vial']
         await download_ninja_prices(leagues, currencyoverviews, itemoverviews)
@@ -215,7 +215,7 @@ async def Giveaway_reg(interaction: discord.Interaction):
     await interaction.response.send_message(message, ephemeral=True)
 @LionDiscordBot.tree.command(name='giveaway_roll', description='Провести Roll')
 @app_commands.guild_only()
-async def gift_roll(interaction: discord.Interaction):
+async def giveaway_roll(interaction: discord.Interaction):
     if interaction.user.get_role(197084204297617408):
         registered_users = []
         json_file = constants.json_reg_file
