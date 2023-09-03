@@ -9,7 +9,7 @@ async def get_json(url):
         async with session.get(url) as response:
             data = await response.json()
             return data
-def get_item_header(name, class_name, rarity):
+def get_item_header(name, class_name, rarity, tags):
     header_components = []
     if name != 'None':
         header_components.append(f"{name}")
@@ -17,6 +17,8 @@ def get_item_header(name, class_name, rarity):
         header_components.append(f"{class_name}")
     if rarity not in ['None','Normal']:
         header_components.append(f"{rarity}")
+    if tags != 'None':
+        header_components.append(f"Tags: {tags}")
 
     link = (f'<https://www.poewiki.net/wiki/{name}>').replace(' ', '_')
     link_text = ', '.join(header_components)
@@ -31,7 +33,7 @@ def find_item(data_item, league):
     drop_areas = data_item['title'].get('drop areas html', 'None')
     tags = data_item['title'].get('tags', 'None')
     rarity = data_item['title'].get('rarity', 'None')
-    header = get_item_header(name, class_name, rarity)
+    header = get_item_header(name, class_name, rarity, tags)
     price = get_ninja_price(name, class_name, tags, rarity, league)
     components = ['']
     if drop_areas != 'None':
