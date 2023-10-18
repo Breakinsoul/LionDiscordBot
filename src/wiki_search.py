@@ -1,7 +1,7 @@
 import aiohttp
 import re
 import constants
-
+import urllib
 from src.ninja_prices import get_ninja_price
 
 async def get_json(url):
@@ -36,7 +36,7 @@ def find_item(data_item, league):
     header = get_item_header(name, class_name, rarity, tags)
     price = get_ninja_price(name, class_name, tags, rarity, league)
     components = ['']
-    if drop_areas != 'None':
+    if drop_areas:
         areas = get_drop_areas(drop_areas)
         components.append(f" - Areas: {', '.join(areas)}\n")
     if price:
@@ -66,14 +66,12 @@ def get_items(data, league):
         return {items_header}
 
 async def wiki_search(search_for, search, league):
-    if search_for == 'gem':
-        api_entry = constants.gem_api_entry
-    elif search_for == 'unique':
+    if search_for == 'OnlyUniques':
         api_entry = constants.uniq_api_entry
-    else:
+    elif search_for == 'Search':
         api_entry = constants.any_api_entry
-    url = f'{api_entry}{search}%25%22'
-    print(url)
+    text_url = f'{api_entry}{search}%"'
+    url = urllib.parse.quote(text_url, safe=':/?&=')
     data = await get_json(url)
     items = get_items(data, league)
     

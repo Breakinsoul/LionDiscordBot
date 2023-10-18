@@ -1,16 +1,14 @@
-
 import discord
 import re
 import asyncio
 import json
 import os
 import aiohttp
-import random
+import urllib
 
 from discord import app_commands
 from discord.ext import commands
 from discord.ext import tasks
-from datetime import datetime
 from typing import Literal, List
 
 import constants
@@ -42,7 +40,7 @@ class LionDiscordBot(discord.Client):
     async def grab_ninja_jsons(self):
         leagues = constants.autocomplete_settings_league
         currencyoverviews = ['Currency', 'Fragment']
-        itemoverviews = ['DivinationCard', 'DeliriumOrb', 'Artifact', 'Oil', 'UniqueWeapon', 'UniqueArmour', 'UniqueAccessory', 'UniqueFlask', 'UniqueJewel', 'SkillGem', 'Map', 'UniqueMap', 'Invitation', 'Scarab', 'Fossil', 'Resonator', 'Essence', 'Vial']
+        itemoverviews = ['DivinationCard', 'DeliriumOrb', 'Artifact', 'Oil', 'UniqueWeapon', 'UniqueArmour', 'UniqueAccessory', 'UniqueFlask', 'UniqueJewel', 'SkillGem', 'Map', 'UniqueMap', 'Invitation', 'Scarab', 'Fossil', 'Resonator', 'Essence', 'Vial', 'Tattoo', 'Omen']
         await download_ninja_prices(leagues, currencyoverviews, itemoverviews)
     @grab_ninja_jsons.before_loop
     async def before_grab_ninja_jsons(self):
@@ -57,12 +55,8 @@ class LionDiscordBot(discord.Client):
         await self.wait_until_ready() 
     @tasks.loop()
     async def set_level_roles_to_members(self):
-        time = datetime.now().strftime('%H:%M:%S')
-        print ('-------')
-        print(f'[{time}] Started set level roles to members...')
         await asyncio.create_task(AsyncSetRoles(self.get_guild(constants.GUILD_ID), constants.USER_ROLE_ID, self.get_channel(constants.MAIN_CHANNEL_ID)))
-        time = datetime.now().strftime('%H:%M:%S')
-        print(f'[{time}] Finished set level roles to members...')
+
     @set_level_roles_to_members.before_loop
     async def before_set_level_roles_to_members(self):
         await self.wait_until_ready()
@@ -144,27 +138,19 @@ async def sync(interaction: discord.Interaction):
     for guild in guilds:
         LionDiscordBot.tree.copy_global_to(guild=guild)
         await LionDiscordBot.tree.sync(guild=guild)
-        print (await LionDiscordBot.tree.fetch_commands(guild=guild))
-        print(f"Synced {guild.name}:{guild.id}")
     await interaction.response.send_message("Synced", ephemeral=True)
 async def search_autocomplete(interaction : discord.Interaction,search: str) -> List [app_commands.Choice[str]]:
     search_for = interaction.namespace.search_for
     if search_for == 'OnlyUniques':
         api_entry = constants.uniq_api_entry
-        url = f'{api_entry}{search}%25%22'
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                data = await response.json()
-                items = [record['title']['name'] for record in data['cargoquery'][:25]]
-                return [
-                    app_commands.Choice(name=item, value=item)
-                    for item in items
-                ]
+        text_url = f'{api_entry}{search}%"'
+        url = urllib.parse.quote(text_url, safe=':/?&=')
     elif search_for == 'Search':
         api_entry = constants.any_api_entry
-        url = f'{api_entry}{search}%25%22'
+        text_url = f'{api_entry}{search}%"'
+        url = urllib.parse.quote(text_url, safe=':/?&=')
 
+    if search_for == 'OnlyUniques' or search_for == 'Search':
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 data = await response.json()
@@ -184,74 +170,6 @@ async def search_autocomplete(interaction : discord.Interaction,search: str) -> 
             app_commands.Choice(name=visibility, value=visibility)
             for visibility in ['Public', 'Private']
         ]
-@LionDiscordBot.tree.command(name='giveaway', description="Раздача")
-@app_commands.guild_only()
-async def Giveaway_reg(interaction: discord.Interaction):
-    message = ''
-    with open(constants.json_reg_file, 'r+') as file:
-        data = json.load(file)
-        user_id = interaction.user.id
-        giveaway_id = 1
-        for user in data:
-            if user['user'] == user_id:
-                giveaway = user['conf'].get(f'giveaway_{giveaway_id}')
-                if giveaway == True:
-                    message = 'Вы уже зарегистрированы'
-                else:
-                    user['conf'][f'giveaway_{giveaway_id}'] = True
-                    message = 'Вы успешно зарегистрированы'
-                break
-        else:
-            new_record = {
-                'user': user_id,
-                'conf': {
-                    f'giveaway_{giveaway_id}': True
-                }
-            }
-            data.append(new_record)
-            message = 'Вы успешно зарегистрированы'
-        file.seek(0)
-        json.dump(data, file, indent=4)
-    await interaction.response.send_message(message, ephemeral=True)
-@LionDiscordBot.tree.command(name='giveaway_roll', description='Провести Roll')
-@app_commands.guild_only()
-async def giveaway_roll(interaction: discord.Interaction):
-    if interaction.user.get_role(197084204297617408):
-        registered_users = []
-        json_file = constants.json_reg_file
-        giveaway_id = 1
-        giveaway_league = constants.giveaway_league
-        if not os.path.exists(json_file):
-            with open(json_file, 'w') as file:
-                json.dump([], file, indent=4)
-        with open(json_file, 'r') as file:
-            data = json.load(file)
-            for user in data:
-                if user['conf'].get(f'giveaway_{giveaway_id}') == True:
-                    registered_users.append(user['user'])
-        random_number = random.randint(1, len(registered_users))
-        random_user = interaction.guild.get_member(registered_users[random_number-1])
-        message = f'>>> Случайное число было {random_number}, пользователь ID:{random_user.id}, {random_user.mention}\n'
-        
-        nickname = random_user.display_name or random_user.name
-        username_split = username_splitter(nickname)
-        url = f'https://www.pathofexile.com/character-window/get-characters?accountName={username_split}'
-        message += f'Url: {url}\n'
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'}
-        char_lvled = []
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as request:
-                data = await request.json()
-                if request.status == 200:
-                    for character in data:
-                        if giveaway_league in character['league'] and character['level'] >= 75:
-                            char_name = character['name']
-                            char_lvl = character['level']
-                            char_league = character['league']
-                            char_class = character['class']
-                            char_lvled.append(f'{char_name}, уровень {char_lvl}, класс {char_class}, лига {char_league}\n')
-        message += f'У пользователя есть персонаж(и):\n {"".join(char_lvled)}'         
-        await interaction.response.send_message(message)
 
 
 @LionDiscordBot.tree.command(name="wiki", description="Поиск по wiki")

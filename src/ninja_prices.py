@@ -131,7 +131,7 @@ def get_ninja_price(name, class_name, tags, rarity, league):
     
     if tags == "affliction_orb,currency,default":
         return get_price_from_json_file(f'{json_folder}/{league}_DeliriumOrb.json', name)
-    if tags == "currency,default" and "Fossil" not in name and "Vial" not in name:
+    if tags == "currency,default" and "Fossil" not in name and "Vial" not in name and "Omen" not in name and "Tattoo" not in name: 
         return get_currency_price_from_json_file(f'{json_folder}/{league}_Currency.json', name)
     if "divination_card,default" in tags:
         return get_price_from_json_file(f'{json_folder}/{league}_DivinationCard.json', name)
@@ -153,8 +153,6 @@ def get_ninja_price(name, class_name, tags, rarity, league):
         return get_uniques_price_from_json_file(f'{json_folder}/{league}_UniqueJewel.json', name, tags)
     if "gem,default" in tags:
         return get_uniques_price_from_json_file(f'{json_folder}/{league}_SkillGem.json', name, tags)
-    #if class_name == "Map" or class_name == "Miscellaneous Map":
-        #return get_price_from_json_file(f'{json_folder}/Map.json', name)    
     if "map,default" in tags and rarity == "Unique":
         return get_uniques_price_from_json_file(f'{json_folder}/{league}_UniqueMap.json', name, tags)
     if "primordial_map,default" in tags or "maven_map" in tags:
@@ -169,6 +167,11 @@ def get_ninja_price(name, class_name, tags, rarity, league):
         return get_price_from_json_file(f'{json_folder}/{league}_Essence.json', name)
     if "Vial of" in name:
         return get_price_from_json_file(f'{json_folder}/{league}_Vial.json', name)
+    if "Tattoo" in name:
+        return get_price_from_json_file(f'{json_folder}/{league}_Tattoo.json', name)
+    if "Omen" in name:
+        return get_price_from_json_file(f'{json_folder}/{league}_Omen.json', name)
+        
     return
 
 async def download_ninja_prices(leagues, currencyoverviews, itemoverviews):

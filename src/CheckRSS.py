@@ -54,17 +54,20 @@ async def check_new_entries(channel):
                 print(f'Error in check_new_entries: {response.status} : {response.reason}')
                 return
             for entry in feed.entries:
-                if entry.title not in all_threads:
-                    converted_text = convert_links(entry.description)
-                    news_embed = discord.Embed(title=entry.title, description=converted_text, url=entry.link)
-                    file_name = await parse_news_img(entry.link, session)
-                    if file_name is not None:
-                        file = discord.File(f'news/{file_name}', filename=file_name)
-                        news_embed.set_image(url=f'attachment://{file_name}')
-                        new_thread, new_message  = await channel.create_thread(name=entry.title, embed=news_embed, file=file)
-                        await new_thread.edit(locked = True)
-                    else:
-                        new_thread, new_message = await channel.create_thread(name=entry.title, embed=news_embed)
-                        await new_thread.edit(locked = True)
+                entry.title = entry.title[:100]
+                if entry.title in all_threads:
+                    continue
+                converted_text = convert_links(entry.description)
+                news_embed = discord.Embed(title=entry.title, description=converted_text, url=entry.link)
+                file_name = await parse_news_img(entry.link, session)
+                if file_name is not None:
+                    file = discord.File(f'news/{file_name}', filename=file_name)
+                    news_embed.set_image(url=f'attachment://{file_name}')
+                    print(f'New thread: {entry.title}, file: {file_name}, url: {entry.link}, description: {converted_text}')
+                    new_thread, new_message  = await channel.create_thread(name=entry.title, embed=news_embed, file=file)
+                    await new_thread.edit(locked = True)
+                else:
+                    new_thread, new_message = await channel.create_thread(name=entry.title, embed=news_embed)
+                    await new_thread.edit(locked = True)
 
                     
