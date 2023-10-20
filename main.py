@@ -78,7 +78,7 @@ class LionDiscordBot(discord.Client):
         await guild.system_channel.send(f'Пользователь {member.mention} зашел на сервер')
         await channel.send(f'Привет,{member.mention}, прочитай правила на канале {member.guild.get_channel(constants.RULES_CNANNEL_ID).mention}, оставь заявку в гильдию через команду /reg', delete_after = 600)
     async def on_member_remove(self, member: discord.Member):
-        if member.guild.fetch_ban(member.id) is None:
+        if await member.guild.fetch_ban(member.id) is None:
             return
         await member.guild.system_channel.send(f'Пользователь {member.mention} покинул сервер')
     async def on_member_ban(self, guild: discord.Guild, member: discord.Member):
