@@ -24,7 +24,8 @@ async def parse_news_img(link, session):
         div_box_content = soup.find('div', class_='box-content s-pad')
         if div_box_content is None:
             return None
-        
+        if div_box_content.find('img') is None:
+            return None
         img_src = div_box_content.find('img')['src']
         if img_src is None:
             return None
