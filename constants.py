@@ -1,14 +1,14 @@
 from typing import List
 
-DISCORD_TOKEN = "your_bot_token_here"
-GUILD_ID: int = 989860441176035328
-MAIN_CHANNEL_ID: int = 989860441176035331
-RU_NEWS_CHANNEL_ID: int = 1383299940981145673
-RULES_CNANNEL_ID: int = 989860441176035331
-USER_ROLE_ID: int = 463128518562152461
-MEMBERSHIP_REQ_CHANNEL_ID: int = 989860441176035331
-OF_ROLE_ID: int = 197084204297617408
-CANDIDATE_ROLE_ID: int = 1139581517299990658
+DISCORD_TOKEN = "your_bot_token_here" #Discord bot token
+GUILD_ID: int = "your_guild_id" #ID of the guild
+MAIN_CHANNEL_ID: int = "your_main_channel_id" #ID of the main channel
+RU_NEWS_CHANNEL_ID: int = "your_ru_news_channel_id" #ID of the RU news channel
+RULES_CNANNEL_ID: int = "your_rules_channel_id" #ID of the rules channel
+USER_ROLE_ID: int = "your_user_role_id" #ID of the user role
+MEMBERSHIP_REQ_CHANNEL_ID: int = "your_membership_req_channel_id" #ID of the membership request channel
+OF_ROLE_ID: int = "your_officer_role_id" #ID of the officer role
+CANDIDATE_ROLE_ID: int = "your_candidate_role_id" #ID of the candidate role
 
 autocomplete_settings_league: List[str] = [
     'Mercenaries'
